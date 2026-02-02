@@ -7,6 +7,7 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.views import APIView
 
+
 from .models import Category, Product, Review
 from .serializers import (
     CategorySerializer,
@@ -17,6 +18,8 @@ from .serializers import (
     ProductValidateSerializer,
     ReviewValidateSerializer
 )
+
+from common.permissions import IsOwner, IsAnonymous, CanEditWithIn15Minutes
 
 PAGE_SIZE = 5
 
@@ -38,6 +41,7 @@ class CategoryListCreateAPIView(ListCreateAPIView):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     pagination_class = CustomPagination
+    permission_classes = [IsOwner | IsAnonymous]
 
     def post(self, request, *args, **kwargs):
         serializer = CategoryValidateSerializer(data=request.data)
@@ -70,7 +74,10 @@ class ProductListCreateAPIView(ListCreateAPIView):
     pagination_class = CustomPagination
 
     def post(self, request, *args, **kwargs):
-        serializer = ProductValidateSerializer(data=request.data)
+        serializer = ProductValidateSerializer (
+            data=request.data,
+            context={'user': request.user}
+        )
         serializer.is_valid(raise_exception=True)
 
         # Get validated data
@@ -84,7 +91,8 @@ class ProductListCreateAPIView(ListCreateAPIView):
             title=title,
             description=description,
             price=price,
-            category=category
+            category=category,
+            owner=request.user,
         )
 
         return Response(data=ProductSerializer(product).data,
@@ -95,6 +103,7 @@ class ProductDetailAPIView(RetrieveUpdateDestroyAPIView):
     queryset = Product.objects.select_related('category').all()
     serializer_class = ProductSerializer
     lookup_field = 'id'
+    permission_classes = [(IsOwner & CanEditWithIn15Minutes) | IsAnonymous]
 
     def put(self, request, *args, **kwargs):
         product = self.get_object()

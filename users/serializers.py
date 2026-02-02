@@ -1,6 +1,16 @@
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from .models import ConfirmationCode, CustomUser
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user) # JWT сам проверяет логин и пароль и выдаёт токен
+        token["email"] = user.email # добавляем кастомное поле в payload токена
+        token["birthdate"] = user.birthdate.isoformat() if user.birthdate else None
+        return token
 
 
 class UserBaseSerializer(serializers.Serializer):

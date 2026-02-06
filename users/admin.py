@@ -10,7 +10,7 @@ class CustomUserAdmin(UserAdmin):
     list_display = ("id", "email", "phone_number", "is_active")
     ordering = ("email",)
     fieldsets = (
-        (None, {"fields": ("email", "phone_number", "password", "birthdate")}),
+        (None, {"fields": ("email", "phone_number", "password", "first_name", "last_name", "birthdate")}),
         (
             "Permissions",
             {

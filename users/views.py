@@ -18,6 +18,7 @@ import random
 import string
 from .models import CustomUser
 from rest_framework_simplejwt.views import TokenObtainPairView
+from django.core.cache import cache
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):
@@ -69,10 +70,8 @@ class RegistrationAPIView(CreateAPIView):
             # Create a random 6-digit code
             code = ''.join(random.choices(string.digits, k=6))
 
-            confirmation_code = ConfirmationCode.objects.create(
-                user=user,
-                code=code
-            )
+            redis_key = f"confirmation_code:{user.id}"
+            cache.set(redis_key, code, timeout=300)
 
         return Response(
             status=status.HTTP_201_CREATED,
@@ -96,10 +95,10 @@ class ConfirmUserAPIView(CreateAPIView):
             user = CustomUser.objects.get(id=user_id)
             user.is_active = True
             user.save()
+            redis_key = f"confirmation_code:{user_id}"
+            cache.delete(redis_key)
 
             token, _ = Token.objects.get_or_create(user=user)
-
-            ConfirmationCode.objects.filter(user=user).delete()
 
         return Response(
             status=status.HTTP_200_OK,
